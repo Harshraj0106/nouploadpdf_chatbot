@@ -1,30 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chatbot</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDF Chatbot</title>
+  <style>
+    :root {
+      --bg-light: #ffffff;
+      --bg-dark: #1e1e2f;
+      --text-light: #333;
+      --text-dark: #f3f3f3;
+      --bot-msg-light: #e0e7ff;
+      --bot-msg-dark: #2d2d44;
+      --user-msg-light: linear-gradient(135deg, #667eea, #764ba2);
+      --user-msg-dark: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: var(--text-light);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background: #12121c;
+      color: var(--text-dark);
+    }
+
+    .chat-wrapper {
+      max-width: 800px;
+      height: 90vh;
+      margin: auto;
+      background: var(--bg-light);
+      border-radius: 15px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      transition: background 0.3s;
+    }
+
+    body.dark .chat-wrapper {
+      background: var(--bg-dark);
+    }
+
+    .chat-header {
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header button {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      background: #f3f4f6;
+      transition: background 0.3s;
+    }
+
+    body.dark .chat-body {
+      background: #1a1a2b;
+    }
+
+    .message {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message.user .message-content {
+      align-self: flex-end;
+      background: var(--user-msg-light);
+      color: white;
+    }
+
+    .message.bot .message-content {
+      align-self: flex-start;
+      background: var(--bot-msg-light);
+      color: var(--text-light);
+    }
+
+    body.dark .message.bot .message-content {
+      background: var(--bot-msg-dark);
+      color: var(--text-dark);
+    }
+
+    .message-content {
+      padding: 0.75rem 1rem;
+      border-radius: 20px;
+      max-width: 75%;
+      word-wrap: break-word;
+      position: relative;
+    }
+
+    .message.user .message-content::after {
+      content: '👤';
+      position: absolute;
+      right: -30px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .message.bot .message-content::before {
+      content: '🤖';
+      position: absolute;
+      left: -30px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .sources {
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+      color: #444;
+    }
+
+    body.dark .sources {
+      color: #bbb;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 1rem;
+      background: var(--bg-light);
+      border-top: 1px solid #ccc;
+      transition: background 0.3s;
+    }
+
+    body.dark .chat-input {
+      background: var(--bg-dark);
+      border-top: 1px solid #444;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border-radius: 25px;
+      border: 1px solid #ccc;
+      outline: none;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+    }
+
+    body.dark .chat-input input {
+      background: #2a2a3c;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    .chat-input button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1rem;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 0.5rem;
+    }
+  </style>
 </head>
 <body>
-  <div class="chatbot-container">
+  <div class="chat-wrapper">
     <div class="chat-header">
-      <span class="bot-icon">🤖</span>
-      <span class="chat-title">Chatbot</span>
-      <span class="dropdown-icon">⌄</span>
+      📄 PDF Chatbot
+      <button id="toggleMode" title="Toggle Dark Mode">🌙</button>
     </div>
-    <div class="chat-body" id="chat-body">
+    <div class="chat-body" id="messages">
       <div class="message bot">
-        <span class="bot-icon">🤖</span>
-        <div class="text">Hey there 👋<br/>How can I help you today?</div>
+        <div class="message-content">🤖 Hello! Ask me anything about the predefined PDF.</div>
       </div>
     </div>
+    <div class="loading" id="loading" style="display:none;">Thinking...</div>
     <div class="chat-input">
-      <input type="text" id="user-input" placeholder="Message..." />
-      <button onclick="sendMessage()">📨</button>
+      <input type="text" id="questionInput" placeholder="Type your message...">
+      <button id="sendBtn">➤</button>
     </div>
   </div>
+  <script>
+    const messagesContainer = document.getElementById('messages');
+    const questionInput = document.getElementById('questionInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const loading = document.getElementById('loading');
+    const toggleBtn = document.getElementById('toggleMode');
 
-  <script src="script.js"></script>
+    function addMessage(content, isUser = false, sources = null) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+      let html = `<div class="message-content">${content}</div>`;
+      if (sources && sources.length > 0) {
+        html += '<div class="sources"><strong>Sources:</strong><br>';
+        sources.forEach((source, index) => {
+          html += `${index + 1}. ${source}<br>`;
+        });
+        html += '</div>';
+      }
+      messageDiv.innerHTML = html;
+      messagesContainer.appendChild(messageDiv);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function askQuestion() {
+      const question = questionInput.value.trim();
+      if (!question) return;
+      addMessage(question, true);
+      questionInput.value = '';
+      loading.style.display = 'block';
+      sendBtn.disabled = true;
+
+      fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      })
+        .then(res => res.json())
+        .then(data => {
+          loading.style.display = 'none';
+          sendBtn.disabled = false;
+          if (data.error) {
+            addMessage(`❗ Error: ${data.error}`);
+          } else {
+            addMessage(data.answer, false, data.sources);
+          }
+        })
+        .catch(() => {
+          loading.style.display = 'none';
+          sendBtn.disabled = false;
+          addMessage('⚠️ Sorry, there was an error processing your question.');
+        });
+    }
+
+    sendBtn.addEventListener('click', askQuestion);
+    questionInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') askQuestion();
+    });
+
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+      toggleBtn.textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+    });
+  </script>
 </body>
 </html>
